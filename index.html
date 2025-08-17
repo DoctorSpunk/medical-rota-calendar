@@ -1,803 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Medical Rota Calendar - Doctor Scheduling</title>
-    <style>
-        :root {
-            --primary-color: #1e40af;
-            --primary-light: #eef2ff;
-            --secondary-color: #059669;
-            --danger-color: #dc2626;
-            --warning-color: #f59e0b;
-            --success-color: #10b981;
-            --gray-50: #f8fafc;
-            --gray-100: #f1f5f9;
-            --gray-200: #e2e8f0;
-            --gray-300: #cbd5e1;
-            --gray-400: #94a3b8;
-            --gray-500: #64748b;
-            --gray-600: #475569;
-            --gray-700: #334155;
-            --gray-800: #1e293b;
-            --gray-900: #0f172a;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, var(--primary-color) 0%, #7c3aed 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.2);
-            overflow: hidden;
-        }
-
-        .header {
-            background: linear-gradient(135deg, var(--primary-color), #7c3aed);
-            color: white;
-            padding: 30px;
-            text-align: center;
-            position: relative;
-        }
-
-        .header h1 {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 10px;
-        }
-
-        .header p {
-            font-size: 1.1rem;
-            opacity: 0.9;
-        }
-
-        .status-indicator {
-            position: absolute;
-            top: 15px;
-            right: 30px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(255,255,255,0.1);
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 14px;
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #10b981;
-        }
-
-        .status-dot.disconnected {
-            background: #dc2626;
-        }
-
-        .controls {
-            padding: 30px;
-            background: var(--gray-50);
-            border-bottom: 1px solid var(--gray-200);
-        }
-
-        .controls-section {
-            margin-bottom: 25px;
-        }
-
-        .controls-section h3 {
-            color: var(--gray-800);
-            margin-bottom: 15px;
-            font-size: 1.1rem;
-            font-weight: 600;
-        }
-
-        .controls-row {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-            flex-wrap: wrap;
-            margin-bottom: 15px;
-        }
-
-        .nav-buttons {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .btn {
-            background: linear-gradient(135deg, var(--primary-color), #7c3aed);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 12px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 14px;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(30, 64, 175, 0.3);
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(30, 64, 175, 0.4);
-        }
-
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .btn-secondary {
-            background: linear-gradient(135deg, var(--secondary-color), #047857);
-            box-shadow: 0 4px 15px rgba(5, 150, 105, 0.3);
-        }
-
-        .btn-secondary:hover {
-            box-shadow: 0 8px 25px rgba(5, 150, 105, 0.4);
-        }
-
-        .btn-danger {
-            background: linear-gradient(135deg, var(--danger-color), #b91c1c);
-            box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3);
-        }
-
-        .btn-danger:hover {
-            box-shadow: 0 8px 25px rgba(220, 38, 38, 0.4);
-        }
-
-        .btn-warning {
-            background: linear-gradient(135deg, var(--warning-color), #d97706);
-            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
-        }
-
-        .btn-warning:hover {
-            box-shadow: 0 8px 25px rgba(245, 158, 11, 0.4);
-        }
-
-        .btn-small {
-            padding: 6px 12px;
-            font-size: 12px;
-        }
-
-        .current-month {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--gray-800);
-            margin: 0 20px;
-        }
-
-        .input-group {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        input, select {
-            padding: 12px 16px;
-            border: 2px solid var(--gray-200);
-            border-radius: 12px;
-            font-size: 14px;
-            transition: all 0.3s ease;
-        }
-
-        input:focus, select:focus {
-            outline: none;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
-        }
-
-        .file-upload {
-            position: relative;
-            overflow: hidden;
-            display: inline-block;
-        }
-
-        .file-upload input[type=file] {
-            position: absolute;
-            left: -9999px;
-        }
-
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 16px 24px;
-            border-radius: 12px;
-            color: white;
-            font-weight: 600;
-            z-index: 9999;
-            transform: translateX(400px);
-            transition: transform 0.3s ease;
-            max-width: 350px;
-        }
-
-        .notification.show {
-            transform: translateX(0);
-        }
-
-        .notification.success {
-            background: var(--success-color);
-        }
-
-        .notification.error {
-            background: var(--danger-color);
-        }
-
-        .notification.warning {
-            background: var(--warning-color);
-        }
-
-        .calendar {
-            padding: 30px;
-        }
-
-        .doctor-filter {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-
-        .doctor-tag {
-            background: #e0f2fe;
-            color: #0277bd;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border: 2px solid transparent;
-        }
-
-        .doctor-tag.active {
-            background: var(--primary-color);
-            color: white;
-            border-color: var(--primary-color);
-        }
-
-        .doctor-tag:hover {
-            transform: scale(1.05);
-        }
-
-        .calendar-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 2px;
-            background: var(--gray-200);
-            border-radius: 12px;
-            overflow: hidden;
-        }
-
-        .day-header {
-            background: var(--gray-700);
-            color: white;
-            padding: 20px 10px;
-            text-align: center;
-            font-weight: 600;
-            font-size: 14px;
-        }
-
-        .day-cell {
-            background: white;
-            min-height: 140px;
-            padding: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-            border: 2px solid transparent;
-        }
-
-        .day-cell:hover {
-            background: var(--gray-100);
-            transform: scale(1.02);
-        }
-
-        .day-cell.other-month {
-            background: var(--gray-50);
-            color: var(--gray-400);
-        }
-
-        .day-cell.selected {
-            border-color: var(--primary-color);
-            background: var(--primary-light);
-        }
-
-        .day-number {
-            font-weight: 600;
-            margin-bottom: 8px;
-            font-size: 16px;
-        }
-
-        .shift {
-            background: #3b82f6;
-            color: white;
-            padding: 3px 6px;
-            border-radius: 4px;
-            font-size: 10px;
-            margin-bottom: 2px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .shift:hover {
-            transform: scale(1.05);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-        }
-
-        .shift.am { background: var(--success-color); }
-        .shift.pm { background: #3b82f6; }
-        .shift.eve { background: var(--warning-color); }
-        .shift.night { background: var(--gray-500); }
-        .shift.ld { background: #8b5cf6; }
-        .shift.nwdl { background: var(--danger-color); }
-        .shift.twi { background: #f97316; }
-        .shift.available { background: var(--success-color); }
-        .shift.busy { background: var(--danger-color); }
-        .shift.maybe { background: var(--warning-color); }
-
-        .doctor-indicator {
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--success-color);
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 1000;
-            backdrop-filter: blur(5px);
-        }
-
-        .modal-content {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.3);
-            min-width: 500px;
-            max-width: 90vw;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-
-        .modal h2 {
-            margin-bottom: 20px;
-            color: var(--gray-800);
-            font-size: 1.5rem;
-        }
-
-        .close-btn {
-            position: absolute;
-            top: 15px;
-            right: 20px;
-            background: none;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            color: var(--gray-500);
-        }
-
-        .shift-entry {
-            padding: 15px;
-            margin: 15px 0;
-            background: var(--gray-50);
-            border-radius: 8px;
-            border-left: 4px solid #3b82f6;
-        }
-
-        .shift-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-
-        .doctor-name {
-            font-weight: 600;
-            color: var(--primary-color);
-            font-size: 1.1em;
-        }
-
-        .shift-details {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px;
-            margin: 5px 0;
-            background: white;
-            border-radius: 6px;
-            border-left: 3px solid var(--gray-300);
-        }
-
-        .shift-info {
-            flex-grow: 1;
-        }
-
-        .shift-type {
-            font-weight: 500;
-            margin-bottom: 2px;
-        }
-
-        .shift-location {
-            font-size: 14px;
-            color: var(--gray-500);
-            margin-bottom: 2px;
-        }
-
-        .shift-time {
-            font-size: 12px;
-            color: var(--gray-400);
-        }
-
-        .shift-actions {
-            display: flex;
-            gap: 8px;
-        }
-
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-top: 30px;
-        }
-
-        .stat-card {
-            background: linear-gradient(135deg, var(--gray-50), var(--gray-200));
-            padding: 20px;
-            border-radius: 16px;
-            text-align: center;
-            border: 1px solid var(--gray-200);
-        }
-
-        .stat-number {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--primary-color);
-            margin-bottom: 8px;
-        }
-
-        .stat-label {
-            color: var(--gray-500);
-            font-weight: 500;
-        }
-
-        .import-section {
-            background: #fef3c7;
-            border: 2px solid #fbbf24;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-
-        .import-section h3 {
-            color: #92400e;
-            margin-bottom: 10px;
-        }
-
-        .info-section {
-            background: #dbeafe;
-            border: 2px solid var(--primary-color);
-            border-radius: 12px;
-            padding: 20px;
-        }
-
-        .info-section h3 {
-            color: var(--primary-color);
-            margin-bottom: 10px;
-        }
-
-        .legend {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-            margin-bottom: 20px;
-            padding: 15px;
-            background: var(--gray-100);
-            border-radius: 12px;
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 12px;
-            font-weight: 500;
-        }
-
-        .legend-color {
-            width: 16px;
-            height: 16px;
-            border-radius: 4px;
-        }
-
-        .timezone-info {
-            background: #dcfce7;
-            border: 2px solid #16a34a;
-            border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 20px;
-            font-size: 14px;
-        }
-
-        .edit-form {
-            background: var(--gray-50);
-            padding: 20px;
-            border-radius: 12px;
-            margin-top: 20px;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: var(--gray-700);
-        }
-
-        .form-group input,
-        .form-group select {
-            width: 100%;
-        }
-
-        .form-actions {
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-            margin-top: 20px;
-        }
-
-        @media (max-width: 768px) {
-            .controls-row {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .nav-buttons {
-                justify-content: center;
-            }
-
-            .input-group {
-                flex-direction: column;
-            }
-
-            .modal-content {
-                min-width: 90vw;
-                margin: 20px;
-            }
-
-            .stats {
-                grid-template-columns: 1fr;
-            }
-
-            .notification {
-                right: 10px;
-                left: 10px;
-                max-width: none;
-            }
-
-            .shift-actions {
-                flex-direction: column;
-            }
-        }
-    </style>
-</head>
-<body>
-    <main class="container">
-        <header class="header">
-            <div class="status-indicator">
-                <div class="status-dot" id="connectionStatus"></div>
-                <span id="connectionText">Connecting...</span>
-            </div>
-            <h1>🏥 Medical Rota Calendar</h1>
-            <p>Real-time coordination with your doctor friends - see who's free when!</p>
-        </header>
-
-        <section class="controls">
-            <!-- Import Section -->
-            <div class="controls-section">
-                <h3>📥 Import Medical Rota</h3>
-                <div class="import-section">
-                    <p style="margin-bottom: 15px; color: #92400e;">Import ICS files from Medirota or other scheduling systems:</p>
-                    <div class="controls-row">
-                        <div class="input-group">
-                            <input type="text" id="doctorName" placeholder="Your name (e.g., Sarah)" style="width: 200px;">
-                            
-                            <div class="file-upload">
-                                <input type="file" id="icsFile" accept=".ics">
-                                <button type="button" class="btn btn-secondary" id="fileUploadBtn">Choose ICS File</button>
-                            </div>
-                            
-                            <button type="button" class="btn btn-danger" id="clearDataBtn">Clear All Data</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Navigation -->
-            <div class="controls-section">
-                <h3>📅 Calendar Navigation</h3>
-                <div class="controls-row">
-                    <nav class="nav-buttons">
-                        <button type="button" class="btn" id="prevMonthBtn">← Prev</button>
-                        <span class="current-month" id="currentMonth"></span>
-                        <button type="button" class="btn" id="nextMonthBtn">Next →</button>
-                        <button type="button" class="btn" id="todayBtn">Today</button>
-                    </nav>
-                </div>
-            </div>
-
-            <!-- Manual Entry -->
-            <div class="controls-section">
-                <h3>✍️ Manual Entry</h3>
-                <div class="controls-row">
-                    <div class="input-group">
-                        <input type="text" id="manualDoctorName" placeholder="Your name" style="width: 150px;">
-                        <input type="date" id="shiftDate">
-                        <input type="text" id="shiftDetails" placeholder="Shift details (e.g., Ward 7 AM)">
-                        <select id="shiftType">
-                            <option value="am">AM</option>
-                            <option value="pm">PM</option>
-                            <option value="eve">Evening</option>
-                            <option value="night">Night</option>
-                            <option value="ld">Long Day</option>
-                            <option value="available">Available</option>
-                            <option value="busy">Busy</option>
-                            <option value="maybe">Maybe</option>
-                        </select>
-                        <button type="button" class="btn btn-secondary" id="addShiftBtn">Add Shift</button>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section class="calendar">
-            <!-- Doctor Filter -->
-            <div class="doctor-filter" id="doctorFilter">
-                <div class="doctor-tag active" data-doctor="all">All Friends</div>
-            </div>
-
-            <!-- Legend -->
-            <div class="legend">
-                <div class="legend-item">
-                    <div class="legend-color" style="background: var(--success-color);"></div>
-                    <span>AM / Available</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: #3b82f6;"></div>
-                    <span>PM</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: var(--warning-color);"></div>
-                    <span>Evening / Maybe</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: var(--gray-500);"></div>
-                    <span>Night</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: #8b5cf6;"></div>
-                    <span>Long Day</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: var(--danger-color);"></div>
-                    <span>NWDL / Busy</span>
-                </div>
-            </div>
-
-            <div class="calendar-grid" id="calendar"></div>
-        </section>
-
-        <footer class="stats">
-            <div class="stat-card">
-                <div class="stat-number" id="friendsJoined">0</div>
-                <div class="stat-label">Friends Joined</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="freeDaysThisWeek">0</div>
-                <div class="stat-label">Free Days This Week</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="freeWeekends">0</div>
-                <div class="stat-label">Free Weekends</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="everyoneFree">0</div>
-                <div class="stat-label">Days Everyone's Free</div>
-            </div>
-        </footer>
-    </main>
-
-    <!-- Modal for shift details -->
-    <div id="shiftModal" class="modal">
-        <div class="modal-content">
-            <button type="button" class="close-btn" id="closeModalBtn">&times;</button>
-            <h2 id="modalTitle">Day Details</h2>
-            <div id="modalContent"></div>
-        </div>
-    </div>
-
-    <!-- Modal for editing shifts -->
-    <div id="editShiftModal" class="modal">
-        <div class="modal-content">
-            <button type="button" class="close-btn" id="closeEditModalBtn">&times;</button>
-            <h2>Edit Shift</h2>
-            <div class="edit-form">
-                <div class="form-group">
-                    <label for="editDoctorName">Doctor Name:</label>
-                    <input type="text" id="editDoctorName" placeholder="Doctor name">
-                </div>
-                <div class="form-group">
-                    <label for="editShiftDate">Date:</label>
-                    <input type="date" id="editShiftDate">
-                </div>
-                <div class="form-group">
-                    <label for="editShiftDetails">Location/Details:</label>
-                    <input type="text" id="editShiftDetails" placeholder="Location or shift details">
-                </div>
-                <div class="form-group">
-                    <label for="editShiftType">Shift Type:</label>
-                    <select id="editShiftType">
-                        <option value="am">AM</option>
-                        <option value="pm">PM</option>
-                        <option value="eve">Evening</option>
-                        <option value="night">Night</option>
-                        <option value="ld">Long Day</option>
-                        <option value="available">Available</option>
-                        <option value="busy">Busy</option>
-                        <option value="maybe">Maybe</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="editShiftTime">Time:</label>
-                    <input type="text" id="editShiftTime" placeholder="e.g., 08:00-16:00">
-                </div>
-                <div class="form-actions">
-                    <button type="button" class="btn" id="cancelEditBtn">Cancel</button>
-                    <button type="button" class="btn btn-secondary" id="saveEditBtn">Save Changes</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script type="module">
+<script type="module">
         // Import Firebase modules
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { 
@@ -843,6 +44,129 @@
         let doctors = new Set();
         let isConnected = false;
         let editingShift = null;
+        let activeAutocomplete = null;
+
+        // Autocomplete functionality
+        function setupAutocomplete(inputId, dropdownId) {
+            const input = document.getElementById(inputId);
+            const dropdown = document.getElementById(dropdownId);
+            
+            if (!input || !dropdown) {
+                console.warn(`Autocomplete setup failed: ${inputId} or ${dropdownId} not found`);
+                return;
+            }
+            
+            let highlightedIndex = -1;
+
+            input.addEventListener('input', function() {
+                const value = this.value.toLowerCase().trim();
+                const doctorsList = Array.from(doctors);
+                
+                if (value === '') {
+                    hideDropdown();
+                    return;
+                }
+
+                const filteredDoctors = doctorsList.filter(doctor => 
+                    doctor.toLowerCase().includes(value)
+                );
+
+                showDropdown(filteredDoctors, value, dropdown, input);
+            });
+
+            input.addEventListener('keydown', function(e) {
+                const items = dropdown.querySelectorAll('.autocomplete-item');
+                
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    highlightedIndex = Math.min(highlightedIndex + 1, items.length - 1);
+                    updateHighlight(items);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    highlightedIndex = Math.max(highlightedIndex - 1, -1);
+                    updateHighlight(items);
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (highlightedIndex >= 0 && items[highlightedIndex]) {
+                        selectDoctor(items[highlightedIndex].textContent.replace('+ Add "', '').replace('" as new doctor', ''), input);
+                    }
+                } else if (e.key === 'Escape') {
+                    hideDropdown();
+                }
+            });
+
+            input.addEventListener('blur', function() {
+                // Delay hiding to allow clicking on dropdown items
+                setTimeout(() => {
+                    if (activeAutocomplete !== dropdown) {
+                        hideDropdown();
+                    }
+                }, 150);
+            });
+
+            dropdown.addEventListener('mouseenter', function() {
+                activeAutocomplete = dropdown;
+            });
+
+            dropdown.addEventListener('mouseleave', function() {
+                activeAutocomplete = null;
+            });
+
+            function showDropdown(filteredDoctors, inputValue, dropdown, input) {
+                dropdown.innerHTML = '';
+                highlightedIndex = -1;
+
+                if (filteredDoctors.length === 0) {
+                    const addNewItem = createElement('div', 'autocomplete-item add-new-doctor');
+                    addNewItem.textContent = `+ Add "${inputValue}" as new doctor`;
+                    addNewItem.addEventListener('click', () => selectDoctor(inputValue, input));
+                    dropdown.appendChild(addNewItem);
+                } else {
+                    filteredDoctors.forEach(doctor => {
+                        const item = createElement('div', 'autocomplete-item', doctor);
+                        item.addEventListener('click', () => selectDoctor(doctor, input));
+                        dropdown.appendChild(item);
+                    });
+
+                    // Add option to create new doctor if input doesn't exactly match
+                    if (!filteredDoctors.some(doctor => doctor.toLowerCase() === inputValue.toLowerCase())) {
+                        const addNewItem = createElement('div', 'autocomplete-item add-new-doctor');
+                        addNewItem.textContent = `+ Add "${inputValue}" as new doctor`;
+                        addNewItem.addEventListener('click', () => selectDoctor(inputValue, input));
+                        dropdown.appendChild(addNewItem);
+                    }
+                }
+
+                dropdown.classList.add('show');
+            }
+
+            function hideDropdown() {
+                dropdown.classList.remove('show');
+                highlightedIndex = -1;
+            }
+
+            function updateHighlight(items) {
+                items.forEach((item, index) => {
+                    item.classList.toggle('highlighted', index === highlightedIndex);
+                });
+            }
+
+            function selectDoctor(doctorName, input) {
+                input.value = doctorName.trim();
+                hideDropdown();
+                input.focus();
+            }
+        }
+
+        // Hide all dropdowns when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.autocomplete-container')) {
+                document.querySelectorAll('.autocomplete-dropdown').forEach(dropdown => {
+                    dropdown.classList.remove('show');
+                });
+                activeAutocomplete = null;
+            }
+        });
 
         // UTC Date handling functions - THE TIMEZONE FIX!
         function formatDateKey(date) {
@@ -992,7 +316,10 @@
                         firebaseId: doc.id
                     });
                     
-                    doctors.add(shiftData.doctor);
+                    // Only add doctor name once, normalize case to avoid duplicates
+                    if (shiftData.doctor && shiftData.doctor.trim()) {
+                        doctors.add(shiftData.doctor.trim());
+                    }
                 });
                 
                 renderCalendar();
@@ -1009,6 +336,9 @@
             const lines = icsContent.split('\n');
             const events = [];
             let currentEvent = {};
+
+            // Normalize doctor name to prevent duplicates
+            const normalizedDoctorName = doctorName.trim();
 
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i].trim();
@@ -1058,7 +388,7 @@
 
                 const shift = {
                     id: generateUniqueId(),
-                    doctor: doctorName,
+                    doctor: normalizedDoctorName,
                     type: shiftType,
                     location: location,
                     summary: event.summary,
@@ -1308,6 +638,18 @@
                 tag.addEventListener('click', () => setDoctorFilter(doctor));
                 filterContainer.appendChild(tag);
             });
+
+            // Update autocomplete for all doctor name inputs
+            setupAutocompleteForAllInputs();
+        }
+
+        function setupAutocompleteForAllInputs() {
+            // Only setup autocomplete if elements exist
+            setTimeout(() => {
+                setupAutocomplete('doctorName', 'doctorNameDropdown');
+                setupAutocomplete('manualDoctorName', 'manualDoctorNameDropdown');
+                setupAutocomplete('editDoctorName', 'editDoctorNameDropdown');
+            }, 100);
         }
 
         function setDoctorFilter(doctor) {
@@ -1506,6 +848,8 @@
             updateStats();
             updateDoctorFilter();
             initializeEventListeners();
+            // Setup initial autocomplete (will be updated when doctors load)
+            setupAutocompleteForAllInputs();
         }
 
         // Start the app
@@ -1517,4 +861,962 @@
 
     </script>
 </body>
-</html>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical Rota Calendar - Doctor Scheduling</title>
+    <style>
+        :root {
+            --primary-color: #1e40af;
+            --primary-light: #eef2ff;
+            --secondary-color: #059669;
+            --danger-color: #dc2626;
+            --warning-color: #f59e0b;
+            --success-color: #10b981;
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, var(--primary-color) 0%, #7c3aed 100%);
+            min-height: 100vh;
+            padding: 10px;
+            margin: 0;
+            overflow-x: auto;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.2);
+            overflow: hidden;
+            min-width: 320px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-color), #7c3aed);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .status-indicator {
+            position: absolute;
+            top: 15px;
+            right: 30px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.1);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+        }
+
+        .status-dot.disconnected {
+            background: #dc2626;
+        }
+
+        .controls {
+            padding: 30px;
+            background: var(--gray-50);
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .controls-section {
+            margin-bottom: 25px;
+        }
+
+        .controls-section h3 {
+            color: var(--gray-800);
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .nav-buttons {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--primary-color), #7c3aed);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(30, 64, 175, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(30, 64, 175, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--secondary-color), #047857);
+            box-shadow: 0 4px 15px rgba(5, 150, 105, 0.3);
+        }
+
+        .btn-secondary:hover {
+            box-shadow: 0 8px 25px rgba(5, 150, 105, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger-color), #b91c1c);
+            box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3);
+        }
+
+        .btn-danger:hover {
+            box-shadow: 0 8px 25px rgba(220, 38, 38, 0.4);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning-color), #d97706);
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+        }
+
+        .btn-warning:hover {
+            box-shadow: 0 8px 25px rgba(245, 158, 11, 0.4);
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .current-month {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--gray-800);
+            margin: 0 20px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .autocomplete-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .autocomplete-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid var(--primary-color);
+            border-top: none;
+            border-radius: 0 0 12px 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1001;
+            display: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .autocomplete-dropdown.show {
+            display: block;
+        }
+
+        .autocomplete-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--gray-200);
+            transition: background-color 0.2s ease;
+        }
+
+        .autocomplete-item:hover,
+        .autocomplete-item.highlighted {
+            background-color: var(--primary-light);
+        }
+
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+
+        .add-new-doctor {
+            color: var(--primary-color);
+            font-weight: 600;
+            font-style: italic;
+        }
+
+        input, select {
+            padding: 12px 16px;
+            border: 2px solid var(--gray-200);
+            border-radius: 12px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+        }
+
+        .file-upload {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .file-upload input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            z-index: 9999;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            max-width: 350px;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: var(--success-color);
+        }
+
+        .notification.error {
+            background: var(--danger-color);
+        }
+
+        .notification.warning {
+            background: var(--warning-color);
+        }
+
+        .calendar {
+            padding: 15px;
+            overflow-x: auto;
+        }
+
+        .doctor-filter {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .doctor-tag {
+            background: #e0f2fe;
+            color: #0277bd;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .doctor-tag.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .doctor-tag:hover {
+            transform: scale(1.05);
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            background: var(--gray-200);
+            border-radius: 12px;
+            overflow: hidden;
+            min-width: 700px;
+            width: 100%;
+        }
+
+        .day-header {
+            background: var(--gray-700);
+            color: white;
+            padding: 20px 10px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .day-cell {
+            background: white;
+            min-height: 120px;
+            padding: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            border: 2px solid transparent;
+            min-width: 90px;
+        }
+
+        .day-cell:hover {
+            background: var(--gray-100);
+            transform: scale(1.02);
+        }
+
+        .day-cell.other-month {
+            background: var(--gray-50);
+            color: var(--gray-400);
+        }
+
+        .day-cell.selected {
+            border-color: var(--primary-color);
+            background: var(--primary-light);
+        }
+
+        .day-number {
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .shift {
+            background: #3b82f6;
+            color: white;
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            margin-bottom: 2px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .shift:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .shift.am { background: var(--success-color); }
+        .shift.pm { background: #3b82f6; }
+        .shift.eve { background: var(--warning-color); }
+        .shift.night { background: var(--gray-500); }
+        .shift.ld { background: #8b5cf6; }
+        .shift.nwdl { background: var(--danger-color); }
+        .shift.twi { background: #f97316; }
+        .shift.available { background: var(--success-color); }
+        .shift.busy { background: var(--danger-color); }
+        .shift.maybe { background: var(--warning-color); }
+
+        .doctor-indicator {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success-color);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+            min-width: 500px;
+            max-width: 90vw;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal h2 {
+            margin-bottom: 20px;
+            color: var(--gray-800);
+            font-size: 1.5rem;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--gray-500);
+        }
+
+        .shift-entry {
+            padding: 15px;
+            margin: 15px 0;
+            background: var(--gray-50);
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .shift-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .doctor-name {
+            font-weight: 600;
+            color: var(--primary-color);
+            font-size: 1.1em;
+        }
+
+        .shift-details {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            margin: 5px 0;
+            background: white;
+            border-radius: 6px;
+            border-left: 3px solid var(--gray-300);
+        }
+
+        .shift-info {
+            flex-grow: 1;
+        }
+
+        .shift-type {
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        .shift-location {
+            font-size: 14px;
+            color: var(--gray-500);
+            margin-bottom: 2px;
+        }
+
+        .shift-time {
+            font-size: 12px;
+            color: var(--gray-400);
+        }
+
+        .shift-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--gray-50), var(--gray-200));
+            padding: 20px;
+            border-radius: 16px;
+            text-align: center;
+            border: 1px solid var(--gray-200);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            color: var(--gray-500);
+            font-weight: 500;
+        }
+
+        .import-section {
+            background: #fef3c7;
+            border: 2px solid #fbbf24;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .import-section h3 {
+            color: #92400e;
+            margin-bottom: 10px;
+        }
+
+        .legend {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: var(--gray-100);
+            border-radius: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+
+        .edit-form {
+            background: var(--gray-50);
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 5px;
+            }
+
+            .container {
+                border-radius: 10px;
+                margin: 0;
+            }
+
+            .header {
+                padding: 20px 15px;
+            }
+
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            .status-indicator {
+                position: static;
+                margin-bottom: 10px;
+                justify-content: center;
+            }
+
+            .controls {
+                padding: 15px;
+            }
+
+            .controls-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .nav-buttons {
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+
+            .current-month {
+                margin: 10px 0;
+                text-align: center;
+                font-size: 1.2rem;
+            }
+
+            .input-group {
+                flex-direction: column;
+            }
+
+            .calendar {
+                padding: 10px;
+                overflow-x: auto;
+            }
+
+            .calendar-grid {
+                min-width: 600px;
+            }
+
+            .day-cell {
+                min-height: 100px;
+                padding: 4px;
+                min-width: 80px;
+            }
+
+            .day-header {
+                padding: 15px 5px;
+                font-size: 12px;
+            }
+
+            .shift {
+                font-size: 9px;
+                padding: 2px 4px;
+            }
+
+            .modal-content {
+                min-width: 90vw;
+                margin: 10px;
+                padding: 20px;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+                padding: 0 15px;
+            }
+
+            .notification {
+                right: 10px;
+                left: 10px;
+                max-width: none;
+            }
+
+            .shift-actions {
+                flex-direction: column;
+            }
+
+            .doctor-filter {
+                justify-content: center;
+            }
+
+            .legend {
+                justify-content: center;
+                padding: 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .controls-section h3 {
+                font-size: 1rem;
+            }
+
+            .autocomplete-container {
+                width: 100%;
+            }
+
+            .autocomplete-dropdown {
+                font-size: 13px;
+                z-index: 1002;
+            }
+
+            .autocomplete-item {
+                padding: 10px 12px;
+            }
+
+            .calendar-grid {
+                min-width: 500px;
+            }
+
+            .day-cell {
+                min-width: 70px;
+                min-height: 90px;
+            }
+
+            .day-header {
+                padding: 10px 3px;
+                font-size: 11px;
+            }
+
+            .btn {
+                padding: 10px 16px;
+                font-size: 13px;
+            }
+
+            .btn-small {
+                padding: 5px 10px;
+                font-size: 11px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <header class="header">
+            <div class="status-indicator">
+                <div class="status-dot" id="connectionStatus"></div>
+                <span id="connectionText">Connecting...</span>
+            </div>
+            <h1>🏥 Medical Rota Calendar</h1>
+            <p>Real-time coordination with your doctor friends - see who's free when!</p>
+        </header>
+
+        <section class="controls">
+            <!-- Import Section -->
+            <div class="controls-section">
+                <h3>📥 Import Medical Rota</h3>
+                <div class="import-section">
+                    <p style="margin-bottom: 15px; color: #92400e;">Import ICS files from Medirota or other scheduling systems:</p>
+                    <div class="controls-row">
+                        <div class="input-group">
+                            <div class="autocomplete-container">
+                                <input type="text" id="doctorName" placeholder="Your name (e.g., Sarah)" style="width: 200px;">
+                                <div class="autocomplete-dropdown" id="doctorNameDropdown"></div>
+                            </div>
+                            
+                            <div class="file-upload">
+                                <input type="file" id="icsFile" accept=".ics">
+                                <button type="button" class="btn btn-secondary" id="fileUploadBtn">Choose ICS File</button>
+                            </div>
+                            
+                            <button type="button" class="btn btn-danger" id="clearDataBtn">Clear All Data</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="controls-section">
+                <h3>📅 Calendar Navigation</h3>
+                <div class="controls-row">
+                    <nav class="nav-buttons">
+                        <button type="button" class="btn" id="prevMonthBtn">← Prev</button>
+                        <span class="current-month" id="currentMonth"></span>
+                        <button type="button" class="btn" id="nextMonthBtn">Next →</button>
+                        <button type="button" class="btn" id="todayBtn">Today</button>
+                    </nav>
+                </div>
+            </div>
+
+            <!-- Manual Entry -->
+            <div class="controls-section">
+                <h3>✍️ Manual Entry</h3>
+                <div class="controls-row">
+                    <div class="input-group">
+                        <div class="autocomplete-container">
+                            <input type="text" id="manualDoctorName" placeholder="Your name" style="width: 150px;">
+                            <div class="autocomplete-dropdown" id="manualDoctorNameDropdown"></div>
+                        </div>
+                        <input type="date" id="shiftDate">
+                        <input type="text" id="shiftDetails" placeholder="Shift details (e.g., Ward 7 AM)">
+                        <select id="shiftType">
+                            <option value="am">AM</option>
+                            <option value="pm">PM</option>
+                            <option value="eve">Evening</option>
+                            <option value="night">Night</option>
+                            <option value="ld">Long Day</option>
+                            <option value="available">Available</option>
+                            <option value="busy">Busy</option>
+                            <option value="maybe">Maybe</option>
+                        </select>
+                        <button type="button" class="btn btn-secondary" id="addShiftBtn">Add Shift</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="calendar">
+            <!-- Doctor Filter -->
+            <div class="doctor-filter" id="doctorFilter">
+                <div class="doctor-tag active" data-doctor="all">All Friends</div>
+            </div>
+
+            <!-- Legend -->
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--success-color);"></div>
+                    <span>AM / Available</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #3b82f6;"></div>
+                    <span>PM</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--warning-color);"></div>
+                    <span>Evening / Maybe</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--gray-500);"></div>
+                    <span>Night</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #8b5cf6;"></div>
+                    <span>Long Day</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--danger-color);"></div>
+                    <span>NWDL / Busy</span>
+                </div>
+            </div>
+
+            <div class="calendar-grid" id="calendar"></div>
+        </section>
+
+        <footer class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="friendsJoined">0</div>
+                <div class="stat-label">Friends Joined</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="freeDaysThisWeek">0</div>
+                <div class="stat-label">Free Days This Week</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="freeWeekends">0</div>
+                <div class="stat-label">Free Weekends</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="everyoneFree">0</div>
+                <div class="stat-label">Days Everyone's Free</div>
+            </div>
+        </footer>
+    </main>
+
+    <!-- Modal for shift details -->
+    <div id="shiftModal" class="modal">
+        <div class="modal-content">
+            <button type="button" class="close-btn" id="closeModalBtn">&times;</button>
+            <h2 id="modalTitle">Day Details</h2>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+
+    <!-- Modal for editing shifts -->
+    <div id="editShiftModal" class="modal">
+        <div class="modal-content">
+            <button type="button" class="close-btn" id="closeEditModalBtn">&times;</button>
+            <h2>Edit Shift</h2>
+            <div class="edit-form">
+                <div class="form-group">
+                    <label for="editDoctorName">Doctor Name:</label>
+                    <div class="autocomplete-container">
+                        <input type="text" id="editDoctorName" placeholder="Doctor name">
+                        <div class="autocomplete-dropdown" id="editDoctorNameDropdown"></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="editShiftDate">Date:</label>
+                    <input type="date" id="editShiftDate">
+                </div>
+                <div class="form-group">
+                    <label for="editShiftDetails">Location/Details:</label>
+                    <input type="text" id="editShiftDetails" placeholder="Location or shift details">
+                </div>
+                <div class="form-group">
+                    <label for="editShiftType">Shift Type:</label>
+                    <select id="editShiftType">
+                        <option value="am">AM</option>
+                        <option value="pm">PM</option>
+                        <option value="eve">Evening</option>
+                        <option value="night">Night</option>
+                        <option value="ld">Long Day</option>
+                        <option value="available">Available</option>
+                        <option value="busy">Busy</option>
+                        <option value="maybe">Maybe</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editShiftTime">Time:</label>
+                    <input type="text" id="editShiftTime" placeholder="e.g., 08:00-16:00">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn" id="cancelEditBtn">Cancel</button>
+                    <button type="button" class="btn btn-secondary" id="saveEditBtn">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module
