@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical Rota Calendar - Doctor Scheduling</title>
+    <style>
+        :root {
+            --primary-color: #1e40af;
+            --primary-light: #eef2ff;
+            --secondary-color: #059669;
+            --danger-color: #dc2626;
+            --warning-color: #f59e0b;
+            --success-color: #10b981;
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, var(--primary-color) 0%, #7c3aed 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-color), #7c3aed);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .status-indicator {
+            position: absolute;
+            top: 15px;
+            right: 30px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.1);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+        }
+
+        .status-dot.disconnected {
+            background: #dc2626;
+        }
+
+        .controls {
+            padding: 30px;
+            background: var(--gray-50);
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .controls-section {
+            margin-bottom: 25px;
+        }
+
+        .controls-section h3 {
+            color: var(--gray-800);
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .nav-buttons {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--primary-color), #7c3aed);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(30, 64, 175, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(30, 64, 175, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--secondary-color), #047857);
+            box-shadow: 0 4px 15px rgba(5, 150, 105, 0.3);
+        }
+
+        .btn-secondary:hover {
+            box-shadow: 0 8px 25px rgba(5, 150, 105, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger-color), #b91c1c);
+            box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3);
+        }
+
+        .btn-danger:hover {
+            box-shadow: 0 8px 25px rgba(220, 38, 38, 0.4);
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .current-month {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--gray-800);
+            margin: 0 20px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        input, select {
+            padding: 12px 16px;
+            border: 2px solid var(--gray-200);
+            border-radius: 12px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+        }
+
+        .file-upload {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .file-upload input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            z-index: 9999;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            max-width: 350px;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: var(--success-color);
+        }
+
+        .notification.error {
+            background: var(--danger-color);
+        }
+
+        .notification.warning {
+            background: var(--warning-color);
+        }
+
+        .calendar {
+            padding: 30px;
+        }
+
+        .doctor-filter {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .doctor-tag {
+            background: #e0f2fe;
+            color: #0277bd;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .doctor-tag.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .doctor-tag:hover {
+            transform: scale(1.05);
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            background: var(--gray-200);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .day-header {
+            background: var(--gray-700);
+            color: white;
+            padding: 20px 10px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .day-cell {
+            background: white;
+            min-height: 140px;
+            padding: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            border: 2px solid transparent;
+        }
+
+        .day-cell:hover {
+            background: var(--gray-100);
+            transform: scale(1.02);
+        }
+
+        .day-cell.other-month {
+            background: var(--gray-50);
+            color: var(--gray-400);
+        }
+
+        .day-cell.selected {
+            border-color: var(--primary-color);
+            background: var(--primary-light);
+        }
+
+        .day-number {
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .shift {
+            background: #3b82f6;
+            color: white;
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            margin-bottom: 2px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .shift:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .shift.am { background: var(--success-color); }
+        .shift.pm { background: #3b82f6; }
+        .shift.eve { background: var(--warning-color); }
+        .shift.night { background: var(--gray-500); }
+        .shift.ld { background: #8b5cf6; }
+        .shift.nwdl { background: var(--danger-color); }
+        .shift.twi { background: #f97316; }
+        .shift.available { background: var(--success-color); }
+        .shift.busy { background: var(--danger-color); }
+        .shift.maybe { background: var(--warning-color); }
+
+        .doctor-indicator {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success-color);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+            min-width: 500px;
+            max-width: 90vw;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal h2 {
+            margin-bottom: 20px;
+            color: var(--gray-800);
+            font-size: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--gray-500);
+        }
+
+        .shift-entry {
+            padding: 15px;
+            margin: 15px 0;
+            background: var(--gray-50);
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .shift-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .doctor-name {
+            font-weight: 600;
+            color: var(--primary-color);
+            font-size: 1.1em;
+        }
+
+        .shift-details {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            margin: 5px 0;
+            background: white;
+            border-radius: 6px;
+            border-left: 3px solid var(--gray-300);
+        }
+
+        .shift-info {
+            flex-grow: 1;
+        }
+
+        .shift-type {
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        .shift-location {
+            font-size: 14px;
+            color: var(--gray-500);
+            margin-bottom: 2px;
+        }
+
+        .shift-time {
+            font-size: 12px;
+            color: var(--gray-400);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--gray-50), var(--gray-200));
+            padding: 20px;
+            border-radius: 16px;
+            text-align: center;
+            border: 1px solid var(--gray-200);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            color: var(--gray-500);
+            font-weight: 500;
+        }
+
+        .import-section {
+            background: #fef3c7;
+            border: 2px solid #fbbf24;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .import-section h3 {
+            color: #92400e;
+            margin-bottom: 10px;
+        }
+
+        .info-section {
+            background: #dbeafe;
+            border: 2px solid var(--primary-color);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .info-section h3 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        .legend {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: var(--gray-100);
+            border-radius: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+
+        @media (max-width: 768px) {
+            .controls-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .nav-buttons {
+                justify-content: center;
+            }
+
+            .input-group {
+                flex-direction: column;
+            }
+
+            .modal-content {
+                min-width: 90vw;
+                margin: 20px;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+            }
+
+            .notification {
+                right: 10px;
+                left: 10px;
+                max-width: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <header class="header">
+            <div class="status-indicator">
+                <div class="status-dot" id="connectionStatus"></div>
+                <span id="connectionText">Connecting...</span>
+            </div>
+            <h1>🏥 Medical Rota Calendar</h1>
+            <p>Real-time coordination with your doctor friends - see who's free when!</p>
+        </header>
+
+        <section class="controls">
+            <!-- Import Section -->
+            <div class="controls-section">
+                <h3>📥 Import Medical Rota</h3>
+                <div class="import-section">
+                    <p style="margin-bottom: 15px; color: #92400e;">Import ICS files from Medirota or other scheduling systems:</p>
+                    <div class="controls-row">
+                        <div class="input-group">
+                            <input type="text" id="doctorName" placeholder="Your name (e.g., Sarah)" style="width: 200px;">
+                            
+                            <div class="file-upload">
+                                <input type="file" id="icsFile" accept=".ics">
+                                <button type="button" class="btn btn-secondary" id="fileUploadBtn">Choose ICS File</button>
+                            </div>
+                            
+                            <button type="button" class="btn btn-danger" id="clearDataBtn">Clear All Data</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="controls-section">
+                <h3>📅 Calendar Navigation</h3>
+                <div class="controls-row">
+                    <nav class="nav-buttons">
+                        <button type="button" class="btn" id="prevMonthBtn">← Prev</button>
+                        <span class="current-month" id="currentMonth"></span>
+                        <button type="button" class="btn" id="nextMonthBtn">Next →</button>
+                        <button type="button" class="btn" id="todayBtn">Today</button>
+                    </nav>
+                </div>
+            </div>
+
+            <!-- Manual Entry -->
+            <div class="controls-section">
+                <h3>✍️ Manual Entry</h3>
+                <div class="controls-row">
+                    <div class="input-group">
+                        <input type="text" id="manualDoctorName" placeholder="Your name" style="width: 150px;">
+                        <input type="date" id="shiftDate">
+                        <input type="text" id="shiftDetails" placeholder="Shift details (e.g., Ward 7 AM)">
+                        <select id="shiftType">
+                            <option value="am">AM</option>
+                            <option value="pm">PM</option>
+                            <option value="eve">Evening</option>
+                            <option value="night">Night</option>
+                            <option value="ld">Long Day</option>
+                            <option value="available">Available</option>
+                            <option value="busy">Busy</option>
+                            <option value="maybe">Maybe</option>
+                        </select>
+                        <button type="button" class="btn btn-secondary" id="addShiftBtn">Add Shift</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Info Section -->
+            <div class="controls-section">
+                <div class="info-section">
+                    <h3>ℹ️ How to Use</h3>
+                    <p style="margin-bottom: 10px; color: var(--primary-color);">
+                        <strong>Real-Time Friend Group Coordination:</strong> Each friend can add their rota and see instant updates from everyone else.<br>
+                        <strong>Plan Together:</strong> Perfect for planning holidays, dinners, trips, and events with live sync across all devices!
+                    </p>
+                    <p style="font-size: 14px; color: var(--gray-600);">
+                        <strong>Note:</strong> All data syncs in real-time through Firebase. Everyone sees updates instantly!
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <section class="calendar">
+            <!-- Doctor Filter -->
+            <div class="doctor-filter" id="doctorFilter">
+                <div class="doctor-tag active" data-doctor="all">All Friends</div>
+            </div>
+
+            <!-- Legend -->
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--success-color);"></div>
+                    <span>AM / Available</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #3b82f6;"></div>
+                    <span>PM</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--warning-color);"></div>
+                    <span>Evening / Maybe</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--gray-500);"></div>
+                    <span>Night</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #8b5cf6;"></div>
+                    <span>Long Day</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--danger-color);"></div>
+                    <span>NWDL / Busy</span>
+                </div>
+            </div>
+
+            <div class="calendar-grid" id="calendar"></div>
+        </section>
+
+        <footer class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="friendsJoined">0</div>
+                <div class="stat-label">Friends Joined</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="freeDaysThisWeek">0</div>
+                <div class="stat-label">Free Days This Week</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="freeWeekends">0</div>
+                <div class="stat-label">Free Weekends</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="everyoneFree">0</div>
+                <div class="stat-label">Days Everyone's Free</div>
+            </div>
+        </footer>
+    </main>
+
+    <!-- Modal for shift details -->
+    <div id="shiftModal" class="modal">
+        <div class="modal-content">
+            <button type="button" class="close-btn" id="closeModalBtn">&times;</button>
+            <h2 id="modalTitle">Day Details</h2>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        // Import Firebase modules
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { 
+            getFirestore, 
+            collection, 
+            doc, 
+            addDoc, 
+            deleteDoc, 
+            getDocs, 
+            onSnapshot,
+            query,
+            orderBy 
+        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDWwkTB7NtpfFPHHKuIEWQ9DSMX-jjVDCc",
+            authDomain: "medical-rota-calendar.firebaseapp.com",
+            projectId: "medical-rota-calendar",
+            storageBucket: "medical-rota-calendar.firebasestorage.app",
+            messagingSenderId: "201413161488",
+            appId: "1:201413161488:web:883d5b9941b0ad599d5095"
+        };
+
+        // Initialize Firebase
+        let app, db, isFirebaseConfigured = false;
+        
+        try {
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            isFirebaseConfigured = true;
+            console.log("Firebase initialized successfully!");
+        } catch (error) {
+            console.error("Firebase initialization error:", error);
+        }
+
+        // Application state
+        let shifts = {};
+        let currentDate = new Date();
+        let selectedDate = null;
+        let activeFilter = 'all';
+        let doctors = new Set();
+        let isConnected = false;
+
+        // Utility functions
+        function generateUniqueId() {
+            return Date.now() + Math.random().toString(36).substr(2, 9);
+        }
+
+        function createElement(tag, className, textContent) {
+            const element = document.createElement(tag);
+            if (className) element.className = className;
+            if (textContent) element.textContent = textContent;
+            return element;
+        }
+
+        function showNotification(message, type = 'success') {
+            const notification = createElement('div', `notification ${type}`, message);
+            document.body.appendChild(notification);
+            
+            setTimeout(() => notification.classList.add('show'), 100);
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => document.body.removeChild(notification), 300);
+            }, 3000);
+        }
+
+        function updateConnectionStatus(connected) {
+            isConnected = connected;
+            const statusDot = document.getElementById('connectionStatus');
+            const statusText = document.getElementById('connectionText');
+            
+            if (connected) {
+                statusDot.classList.remove('disconnected');
+                statusText.textContent = 'Real-time sync active';
+            } else {
+                statusDot.classList.add('disconnected');
+                statusText.textContent = isFirebaseConfigured ? 'Disconnected' : 'Local mode';
+            }
+        }
+
+        function formatDateKey(date) {
+            return date.toISOString().split('T')[0];
+        }
+
+        function formatTime(dtString) {
+            if (!dtString || dtString.length < 8) return '';
+            const hour = dtString.substring(9, 11) || dtString.substring(8, 10);
+            const minute = dtString.substring(11, 13) || dtString.substring(10, 12);
+            return hour + ':' + minute;
+        }
+
+        function getShiftIcon(type) {
+            const icons = {
+                'am': '🌅', 'pm': '☀️', 'eve': '🌆', 'night': '🌙',
+                'ld': '📅', 'nwdl': '🏃', 'twi': '🌇',
+                'available': '✅', 'busy': '❌', 'maybe': '❓'
+            };
+            return icons[type] || '⏰';
+        }
+
+        function getShiftColor(type) {
+            const colors = {
+                'am': 'var(--success-color)', 'pm': '#3b82f6', 'eve': 'var(--warning-color)',
+                'night': 'var(--gray-500)', 'ld': '#8b5cf6', 'nwdl': 'var(--danger-color)',
+                'twi': '#f97316', 'available': 'var(--success-color)', 'busy': 'var(--danger-color)',
+                'maybe': 'var(--warning-color)'
+            };
+            return colors[type] || 'var(--gray-500)';
+        }
+
+        // Firebase functions
+        async function saveShiftToFirebase(shift, dateKey) {
+            if (!isFirebaseConfigured) {
+                console.log("Firebase not configured, using local storage");
+                return;
+            }
+            
+            try {
+                await addDoc(collection(db, 'shifts'), {
+                    ...shift,
+                    dateKey: dateKey,
+                    timestamp: new Date()
+                });
+            } catch (error) {
+                console.error("Error saving to Firebase:", error);
+                showNotification("Error syncing data", "error");
+            }
+        }
+
+        async function deleteShiftFromFirebase(shiftId) {
+            if (!isFirebaseConfigured) return;
+            
+            try {
+                await deleteDoc(doc(db, 'shifts', shiftId));
+            } catch (error) {
+                console.error("Error deleting from Firebase:", error);
+                showNotification("Error removing shift", "error");
+            }
+        }
+
+        function setupFirebaseListener() {
+            if (!isFirebaseConfigured) {
+                updateConnectionStatus(false);
+                return;
+            }
+
+            const q = query(collection(db, 'shifts'), orderBy('timestamp', 'desc'));
+            
+            onSnapshot(q, (snapshot) => {
+                updateConnectionStatus(true);
+                
+                // Reset local data
+                shifts = {};
+                doctors.clear();
+                
+                snapshot.docs.forEach((doc) => {
+                    const shiftData = doc.data();
+                    const dateKey = shiftData.dateKey;
+                    
+                    if (!shifts[dateKey]) {
+                        shifts[dateKey] = [];
+                    }
+                    
+                    // Add Firebase document ID to shift data
+                    shifts[dateKey].push({
+                        ...shiftData,
+                        firebaseId: doc.id
+                    });
+                    
+                    doctors.add(shiftData.doctor);
+                });
+                
+                renderCalendar();
+                updateStats();
+                updateDoctorFilter();
+            }, (error) => {
+                console.error("Firebase listener error:", error);
+                updateConnectionStatus(false);
+            });
+        }
+
+        // ICS parsing
+        function parseICS(icsContent, doctorName) {
+            const lines = icsContent.split('\n');
+            const events = [];
+            let currentEvent = {};
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                
+                if (line === 'BEGIN:VEVENT') {
+                    currentEvent = {};
+                } else if (line === 'END:VEVENT') {
+                    if (currentEvent.start && currentEvent.summary) {
+                        events.push(currentEvent);
+                    }
+                } else if (line.startsWith('SUMMARY:')) {
+                    currentEvent.summary = line.substring(8);
+                } else if (line.startsWith('DTSTART:')) {
+                    currentEvent.start = line.substring(8);
+                } else if (line.startsWith('DTEND:')) {
+                    currentEvent.end = line.substring(6);
+                } else if (line.startsWith('LOCATION:')) {
+                    currentEvent.location = line.substring(9);
+                }
+            }
+
+            // Convert events to our shift format and save to Firebase
+            events.forEach(async (event) => {
+                const startDate = new Date(
+                    event.start.substring(0, 4),
+                    parseInt(event.start.substring(4, 6)) - 1,
+                    event.start.substring(6, 8)
+                );
+                
+                const dayKey = formatDateKey(startDate);
+                
+                // Extract shift type from summary
+                let shiftType = 'other';
+                const summary = event.summary.toLowerCase();
+                if (summary.includes('am:')) shiftType = 'am';
+                else if (summary.includes('pm:')) shiftType = 'pm';
+                else if (summary.includes('eve:')) shiftType = 'eve';
+                else if (summary.includes('night:')) shiftType = 'night';
+                else if (summary.includes('ld:') || summary.includes('ld ')) shiftType = 'ld';
+                else if (summary.includes('nwdl:')) shiftType = 'nwdl';
+                else if (summary.includes('twi:')) shiftType = 'twi';
+
+                // Extract location/ward info
+                let location = event.location || '';
+                const summaryMatch = event.summary.match(/: (.+?) \[/);
+                if (summaryMatch) {
+                    location = summaryMatch[1];
+                }
+
+                const shift = {
+                    id: generateUniqueId(),
+                    doctor: doctorName,
+                    type: shiftType,
+                    location: location,
+                    summary: event.summary,
+                    time: formatTime(event.start) + '-' + formatTime(event.end)
+                };
+
+                // Save to Firebase
+                await saveShiftToFirebase(shift, dayKey);
+            });
+        }
+
+        // Calendar rendering
+        function renderCalendar() {
+            const calendar = document.getElementById('calendar');
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            
+            // Update month display
+            document.getElementById('currentMonth').textContent = 
+                currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+            // Clear calendar
+            calendar.innerHTML = '';
+
+            // Add day headers
+            const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            dayHeaders.forEach(day => {
+                const dayHeader = createElement('div', 'day-header', day);
+                calendar.appendChild(dayHeader);
+            });
+
+            // Generate calendar days
+            const firstDay = new Date(year, month, 1);
+            const startDate = new Date(firstDay);
+            startDate.setDate(startDate.getDate() - firstDay.getDay());
+
+            for (let i = 0; i < 42; i++) {
+                const currentDay = new Date(startDate);
+                currentDay.setDate(startDate.getDate() + i);
+                
+                const dayCell = createElement('div', 'day-cell');
+                
+                if (currentDay.getMonth() !== month) {
+                    dayCell.classList.add('other-month');
+                }
+
+                const dayKey = formatDateKey(currentDay);
+                
+                const dayNumber = createElement('div', 'day-number', currentDay.getDate().toString());
+                dayCell.appendChild(dayNumber);
+
+                // Add shifts for this day
+                if (shifts[dayKey]) {
+                    const filteredShifts = activeFilter === 'all' 
+                        ? shifts[dayKey] 
+                        : shifts[dayKey].filter(shift => shift.doctor === activeFilter);
+                    
+                    filteredShifts.forEach(shift => {
+                        const shiftDiv = createElement('div', `shift ${shift.type}`);
+                        shiftDiv.textContent = `${shift.doctor}: ${shift.location}`;
+                        shiftDiv.title = `${shift.doctor} - ${shift.location} (${shift.time})`;
+                        dayCell.appendChild(shiftDiv);
+                    });
+
+                    // Add doctor indicator if there are shifts
+                    if (filteredShifts.length > 0) {
+                        const indicator = createElement('div', 'doctor-indicator');
+                        dayCell.appendChild(indicator);
+                    }
+                }
+
+                dayCell.addEventListener('click', (event) => selectDate(currentDay, event));
+                calendar.appendChild(dayCell);
+            }
+        }
+
+        function selectDate(date, event) {
+            selectedDate = new Date(date);
+            
+            // Update selected styling
+            document.querySelectorAll('.day-cell').forEach(cell => {
+                cell.classList.remove('selected');
+            });
+            event.currentTarget.classList.add('selected');
+
+            // Update the date picker for manual entry
+            document.getElementById('shiftDate').value = formatDateKey(selectedDate);
+
+            showDayModal(date);
+        }
+
+        function showDayModal(date) {
+            const modal = document.getElementById('shiftModal');
+            const modalContent = document.getElementById('modalContent');
+            const modalTitle = document.getElementById('modalTitle');
+            const dayKey = formatDateKey(date);
+            
+            modalTitle.textContent = date.toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+
+            // Clear existing content
+            modalContent.innerHTML = '';
+
+            if (shifts[dayKey] && shifts[dayKey].length > 0) {
+                const shiftsHeader = createElement('h4', '', 'Scheduled Shifts:');
+                shiftsHeader.style.marginTop = '20px';
+                modalContent.appendChild(shiftsHeader);
+                
+                // Group shifts by doctor
+                const shiftsByDoctor = {};
+                shifts[dayKey].forEach(shift => {
+                    if (!shiftsByDoctor[shift.doctor]) {
+                        shiftsByDoctor[shift.doctor] = [];
+                    }
+                    shiftsByDoctor[shift.doctor].push(shift);
+                });
+
+                Object.keys(shiftsByDoctor).forEach(doctor => {
+                    const doctorSection = createElement('div', 'shift-entry');
+                    
+                    const doctorHeader = createElement('div', 'shift-header');
+                    const doctorName = createElement('h5', 'doctor-name', doctor);
+                    doctorHeader.appendChild(doctorName);
+                    doctorSection.appendChild(doctorHeader);
+                    
+                    shiftsByDoctor[doctor].forEach(shift => {
+                        const shiftDetails = createElement('div', 'shift-details');
+                        shiftDetails.style.borderLeftColor = getShiftColor(shift.type);
+                        
+                        const shiftInfo = createElement('div', 'shift-info');
+                        
+                        const shiftType = createElement('div', 'shift-type');
+                        shiftType.innerHTML = `${getShiftIcon(shift.type)} ${shift.type.toUpperCase()}`;
+                        
+                        const shiftLocation = createElement('div', 'shift-location', shift.location);
+                        const shiftTime = createElement('div', 'shift-time', shift.time);
+                        
+                        shiftInfo.appendChild(shiftType);
+                        shiftInfo.appendChild(shiftLocation);
+                        shiftInfo.appendChild(shiftTime);
+                        
+                        const removeBtn = createElement('button', 'btn btn-danger btn-small', 'Remove');
+                        removeBtn.addEventListener('click', () => removeShift(shift));
+                        
+                        shiftDetails.appendChild(shiftInfo);
+                        shiftDetails.appendChild(removeBtn);
+                        doctorSection.appendChild(shiftDetails);
+                    });
+                    
+                    modalContent.appendChild(doctorSection);
+                });
+            } else {
+                const emptyMessage = createElement('p', '', 'No shifts scheduled for this day.');
+                emptyMessage.style.cssText = 'margin-top: 20px; color: var(--gray-500); text-align: center; padding: 40px;';
+                modalContent.appendChild(emptyMessage);
+            }
+
+            modal.style.display = 'block';
+        }
+
+        async function removeShift(shift) {
+            try {
+                // Remove from Firebase if it has a firebaseId
+                if (shift.firebaseId) {
+                    await deleteShiftFromFirebase(shift.firebaseId);
+                }
+                
+                showNotification('Shift removed successfully');
+                
+                if (selectedDate) {
+                    showDayModal(selectedDate);
+                }
+            } catch (error) {
+                console.error('Error removing shift:', error);
+                showNotification('Error removing shift', 'error');
+            }
+        }
+
+        function updateDoctorFilter() {
+            const filterContainer = document.getElementById('doctorFilter');
+            const currentDoctors = Array.from(doctors).sort();
+            
+            // Clear existing filters
+            filterContainer.innerHTML = '';
+            
+            // Add "All Friends" filter
+            const allTag = createElement('div', 'doctor-tag active', 'All Friends');
+            allTag.setAttribute('data-doctor', 'all');
+            allTag.addEventListener('click', () => setDoctorFilter('all'));
+            filterContainer.appendChild(allTag);
+            
+            // Add individual doctor filters
+            currentDoctors.forEach(doctor => {
+                const tag = createElement('div', 'doctor-tag', doctor);
+                tag.setAttribute('data-doctor', doctor);
+                tag.addEventListener('click', () => setDoctorFilter(doctor));
+                filterContainer.appendChild(tag);
+            });
+        }
+
+        function setDoctorFilter(doctor) {
+            activeFilter = doctor;
+            
+            // Update active styling
+            document.querySelectorAll('.doctor-tag').forEach(tag => {
+                tag.classList.remove('active');
+            });
+            document.querySelector(`[data-doctor="${doctor}"]`).classList.add('active');
+            
+            renderCalendar();
+        }
+
+        // Event handlers
+        function importICSFile(file, doctorName) {
+            if (!file || !doctorName) {
+                showNotification('Please select a file and enter doctor name', 'error');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    parseICS(e.target.result, doctorName);
+                    showNotification(`Successfully imported rota for ${doctorName}!`);
+                    
+                    // Clear the form
+                    document.getElementById('doctorName').value = '';
+                    document.getElementById('icsFile').value = '';
+                } catch (error) {
+                    console.error('Error parsing ICS file:', error);
+                    showNotification('Error importing ICS file. Please check the file format.', 'error');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        async function addManualShift() {
+            const doctorName = document.getElementById('manualDoctorName').value.trim();
+            const shiftDetails = document.getElementById('shiftDetails').value.trim();
+            const shiftType = document.getElementById('shiftType').value;
+            const shiftDate = document.getElementById('shiftDate').value;
+
+            if (!doctorName || !shiftDetails || !shiftDate) {
+                showNotification('Please fill in all fields', 'error');
+                return;
+            }
+
+            const shift = {
+                id: generateUniqueId(),
+                doctor: doctorName,
+                type: shiftType,
+                location: shiftDetails,
+                summary: shiftDetails,
+                time: 'Manual entry'
+            };
+
+            try {
+                await saveShiftToFirebase(shift, shiftDate);
+                
+                // Clear form
+                document.getElementById('shiftDetails').value = '';
+                showNotification('Shift added successfully');
+            } catch (error) {
+                console.error('Error adding shift:', error);
+                showNotification('Error adding shift', 'error');
+            }
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('shiftModal');
+            modal.style.display = 'none';
+        }
+
+        function previousMonth() {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            renderCalendar();
+        }
+
+        function nextMonth() {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            renderCalendar();
+        }
+
+        function goToToday() {
+            currentDate = new Date();
+            renderCalendar();
+        }
+
+        function updateStats() {
+            const today = new Date();
+            const friendsJoined = doctors.size;
+            
+            let freeDaysThisWeek = 0;
+            let freeWeekends = 0;
+            let everyoneFree = 0;
+
+            // Calculate days in the next 4 weeks for analysis
+            for (let i = 0; i < 28; i++) {
+                const checkDate = new Date(today);
+                checkDate.setDate(today.getDate() + i);
+                const dayKey = formatDateKey(checkDate);
+                const dayOfWeek = checkDate.getDay();
+                
+                const hasShifts = shifts[dayKey] && shifts[dayKey].length > 0;
+                
+                if (i < 7 && !hasShifts) {
+                    freeDaysThisWeek++;
+                }
+                
+                if ((dayOfWeek === 0 || dayOfWeek === 6) && !hasShifts) {
+                    freeWeekends++;
+                }
+                
+                if (!hasShifts) {
+                    everyoneFree++;
+                }
+            }
+
+            document.getElementById('friendsJoined').textContent = friendsJoined;
+            document.getElementById('freeDaysThisWeek').textContent = freeDaysThisWeek;
+            document.getElementById('freeWeekends').textContent = freeWeekends;
+            document.getElementById('everyoneFree').textContent = everyoneFree;
+        }
+
+        async function clearAllData() {
+            if (confirm('Are you sure you want to clear all rota data? This cannot be undone and will affect all users.')) {
+                try {
+                    if (isFirebaseConfigured) {
+                        const querySnapshot = await getDocs(collection(db, 'shifts'));
+                        const deletePromises = querySnapshot.docs.map(doc => deleteDoc(doc.ref));
+                        await Promise.all(deletePromises);
+                    }
+                    
+                    showNotification('All data cleared successfully', 'warning');
+                } catch (error) {
+                    console.error('Error clearing data:', error);
+                    showNotification('Error clearing data', 'error');
+                }
+            }
+        }
+
+        // Event listeners
+        function initializeEventListeners() {
+            document.getElementById('prevMonthBtn').addEventListener('click', previousMonth);
+            document.getElementById('nextMonthBtn').addEventListener('click', nextMonth);
+            document.getElementById('todayBtn').addEventListener('click', goToToday);
+
+            document.getElementById('fileUploadBtn').addEventListener('click', () => {
+                document.getElementById('icsFile').click();
+            });
+
+            document.getElementById('icsFile').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                const doctorName = document.getElementById('doctorName').value.trim();
+                if (file && doctorName) {
+                    importICSFile(file, doctorName);
+                } else if (file && !doctorName) {
+                    showNotification('Please enter the doctor\'s name first!', 'warning');
+                }
+            });
+
+            document.getElementById('addShiftBtn').addEventListener('click', addManualShift);
+            document.getElementById('clearDataBtn').addEventListener('click', clearAllData);
+            document.getElementById('closeModalBtn').addEventListener('click', closeModal);
+            
+            document.getElementById('shiftModal').addEventListener('click', (e) => {
+                if (e.target === e.currentTarget) {
+                    closeModal();
+                }
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && document.getElementById('shiftModal').style.display === 'block') {
+                    closeModal();
+                }
+            });
+
+            document.getElementById('shiftDate').value = formatDateKey(new Date());
+        }
+
+        // Initialize application
+        function init() {
+            setupFirebaseListener();
+            renderCalendar();
+            updateStats();
+            updateDoctorFilter();
+            initializeEventListeners();
+        }
+
+        // Initialize when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+
+    </script>
+</body>
+</html>
