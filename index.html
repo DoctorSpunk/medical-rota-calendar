@@ -162,6 +162,15 @@
             box-shadow: 0 8px 25px rgba(220, 38, 38, 0.4);
         }
 
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning-color), #d97706);
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+        }
+
+        .btn-warning:hover {
+            box-shadow: 0 8px 25px rgba(245, 158, 11, 0.4);
+        }
+
         .btn-small {
             padding: 6px 12px;
             font-size: 12px;
@@ -455,6 +464,11 @@
             color: var(--gray-400);
         }
 
+        .shift-actions {
+            display: flex;
+            gap: 8px;
+        }
+
         .stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -540,6 +554,36 @@
             font-size: 14px;
         }
 
+        .edit-form {
+            background: var(--gray-50);
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
         @media (max-width: 768px) {
             .controls-row {
                 flex-direction: column;
@@ -567,6 +611,10 @@
                 right: 10px;
                 left: 10px;
                 max-width: none;
+            }
+
+            .shift-actions {
+                flex-direction: column;
             }
         }
     </style>
@@ -706,6 +754,49 @@
         </div>
     </div>
 
+    <!-- Modal for editing shifts -->
+    <div id="editShiftModal" class="modal">
+        <div class="modal-content">
+            <button type="button" class="close-btn" id="closeEditModalBtn">&times;</button>
+            <h2>Edit Shift</h2>
+            <div class="edit-form">
+                <div class="form-group">
+                    <label for="editDoctorName">Doctor Name:</label>
+                    <input type="text" id="editDoctorName" placeholder="Doctor name">
+                </div>
+                <div class="form-group">
+                    <label for="editShiftDate">Date:</label>
+                    <input type="date" id="editShiftDate">
+                </div>
+                <div class="form-group">
+                    <label for="editShiftDetails">Location/Details:</label>
+                    <input type="text" id="editShiftDetails" placeholder="Location or shift details">
+                </div>
+                <div class="form-group">
+                    <label for="editShiftType">Shift Type:</label>
+                    <select id="editShiftType">
+                        <option value="am">AM</option>
+                        <option value="pm">PM</option>
+                        <option value="eve">Evening</option>
+                        <option value="night">Night</option>
+                        <option value="ld">Long Day</option>
+                        <option value="available">Available</option>
+                        <option value="busy">Busy</option>
+                        <option value="maybe">Maybe</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editShiftTime">Time:</label>
+                    <input type="text" id="editShiftTime" placeholder="e.g., 08:00-16:00">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn" id="cancelEditBtn">Cancel</button>
+                    <button type="button" class="btn btn-secondary" id="saveEditBtn">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
         // Import Firebase modules
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
@@ -715,6 +806,7 @@
             doc, 
             addDoc, 
             deleteDoc, 
+            updateDoc,
             getDocs, 
             onSnapshot,
             query,
@@ -750,6 +842,7 @@
         let activeFilter = 'all';
         let doctors = new Set();
         let isConnected = false;
+        let editingShift = null;
 
         // UTC Date handling functions - THE TIMEZONE FIX!
         function formatDateKey(date) {
@@ -843,6 +936,21 @@
             } catch (error) {
                 console.error("Error saving to Firebase:", error);
                 showNotification("Error syncing data", "error");
+            }
+        }
+
+        async function updateShiftInFirebase(shiftId, updatedShift, newDateKey) {
+            if (!isFirebaseConfigured) return;
+            
+            try {
+                await updateDoc(doc(db, 'shifts', shiftId), {
+                    ...updatedShift,
+                    dateKey: newDateKey,
+                    timestamp: new Date()
+                });
+            } catch (error) {
+                console.error("Error updating shift in Firebase:", error);
+                showNotification("Error updating shift", "error");
             }
         }
 
@@ -1084,11 +1192,19 @@
                         shiftInfo.appendChild(shiftLocation);
                         shiftInfo.appendChild(shiftTime);
                         
+                        const shiftActions = createElement('div', 'shift-actions');
+                        
+                        const editBtn = createElement('button', 'btn btn-warning btn-small', 'Edit');
+                        editBtn.addEventListener('click', () => editShift(shift, dayKey));
+                        
                         const removeBtn = createElement('button', 'btn btn-danger btn-small', 'Remove');
                         removeBtn.addEventListener('click', () => removeShift(shift));
                         
+                        shiftActions.appendChild(editBtn);
+                        shiftActions.appendChild(removeBtn);
+                        
                         shiftDetails.appendChild(shiftInfo);
-                        shiftDetails.appendChild(removeBtn);
+                        shiftDetails.appendChild(shiftActions);
                         doctorSection.appendChild(shiftDetails);
                     });
                     
@@ -1103,21 +1219,76 @@
             modal.style.display = 'block';
         }
 
-        async function removeShift(shift) {
+        function editShift(shift, currentDateKey) {
+            editingShift = { ...shift, currentDateKey };
+            
+            document.getElementById('editDoctorName').value = shift.doctor;
+            document.getElementById('editShiftDate').value = currentDateKey;
+            document.getElementById('editShiftDetails').value = shift.location;
+            document.getElementById('editShiftType').value = shift.type;
+            document.getElementById('editShiftTime').value = shift.time;
+            
+            document.getElementById('editShiftModal').style.display = 'block';
+        }
+
+        async function saveEditedShift() {
+            if (!editingShift) return;
+            
+            const updatedShift = {
+                id: editingShift.id,
+                doctor: document.getElementById('editDoctorName').value.trim(),
+                location: document.getElementById('editShiftDetails').value.trim(),
+                type: document.getElementById('editShiftType').value,
+                time: document.getElementById('editShiftTime').value.trim(),
+                summary: document.getElementById('editShiftDetails').value.trim()
+            };
+            
+            const newDateKey = document.getElementById('editShiftDate').value;
+            
+            if (!updatedShift.doctor || !updatedShift.location || !newDateKey) {
+                showNotification('Please fill in all required fields', 'error');
+                return;
+            }
+            
             try {
-                if (shift.firebaseId) {
-                    await deleteShiftFromFirebase(shift.firebaseId);
+                if (editingShift.firebaseId) {
+                    await updateShiftInFirebase(editingShift.firebaseId, updatedShift, newDateKey);
                 }
                 
-                showNotification('Shift removed successfully');
+                showNotification('Shift updated successfully');
+                closeEditModal();
                 
                 if (selectedDate) {
                     showDayModal(selectedDate);
                 }
             } catch (error) {
-                console.error('Error removing shift:', error);
-                showNotification('Error removing shift', 'error');
+                console.error('Error updating shift:', error);
+                showNotification('Error updating shift', 'error');
             }
+        }
+
+        async function removeShift(shift) {
+            if (confirm('Are you sure you want to remove this shift?')) {
+                try {
+                    if (shift.firebaseId) {
+                        await deleteShiftFromFirebase(shift.firebaseId);
+                    }
+                    
+                    showNotification('Shift removed successfully');
+                    
+                    if (selectedDate) {
+                        showDayModal(selectedDate);
+                    }
+                } catch (error) {
+                    console.error('Error removing shift:', error);
+                    showNotification('Error removing shift', 'error');
+                }
+            }
+        }
+
+        function closeEditModal() {
+            document.getElementById('editShiftModal').style.display = 'none';
+            editingShift = null;
         }
 
         function updateDoctorFilter() {
@@ -1299,6 +1470,9 @@
             document.getElementById('addShiftBtn').addEventListener('click', addManualShift);
             document.getElementById('clearDataBtn').addEventListener('click', clearAllData);
             document.getElementById('closeModalBtn').addEventListener('click', closeModal);
+            document.getElementById('closeEditModalBtn').addEventListener('click', closeEditModal);
+            document.getElementById('cancelEditBtn').addEventListener('click', closeEditModal);
+            document.getElementById('saveEditBtn').addEventListener('click', saveEditedShift);
             
             document.getElementById('shiftModal').addEventListener('click', (e) => {
                 if (e.target === e.currentTarget) {
@@ -1306,9 +1480,19 @@
                 }
             });
 
+            document.getElementById('editShiftModal').addEventListener('click', (e) => {
+                if (e.target === e.currentTarget) {
+                    closeEditModal();
+                }
+            });
+
             document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && document.getElementById('shiftModal').style.display === 'block') {
-                    closeModal();
+                if (e.key === 'Escape') {
+                    if (document.getElementById('editShiftModal').style.display === 'block') {
+                        closeEditModal();
+                    } else if (document.getElementById('shiftModal').style.display === 'block') {
+                        closeModal();
+                    }
                 }
             });
 
